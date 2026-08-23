@@ -250,7 +250,7 @@ class PetState extends HiveObject {
 
   bool get isEgg => speciesId == -1;
 
-  int get level => (ageMinutes ~/ minutesPerLevel) + 1;
+  int get level => min((ageMinutes ~/ minutesPerLevel) + 1, 100);
 
   int get lowestStat => [fullness, joy, energy, hygiene].reduce(min);
 
