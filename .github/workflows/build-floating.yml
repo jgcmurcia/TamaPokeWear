@@ -10,6 +10,7 @@ jobs:
   build-mobile-arm64:
     runs-on: ubuntu-latest
     env:
+      TAMAPOKE_KEYSTORE_B64: ${{ secrets.TAMAPOKE_KEYSTORE_B64 }}
       TAMAPOKE_STORE_PASSWORD: ${{ secrets.TAMAPOKE_STORE_PASSWORD }}
       TAMAPOKE_KEY_ALIAS: ${{ secrets.TAMAPOKE_KEY_ALIAS }}
       TAMAPOKE_KEY_PASSWORD: ${{ secrets.TAMAPOKE_KEY_PASSWORD }}
@@ -43,9 +44,7 @@ jobs:
         run: flutter pub get
 
       - name: Restore persistent signing key when configured
-        if: ${{ secrets.TAMAPOKE_KEYSTORE_B64 != '' }}
-        env:
-          TAMAPOKE_KEYSTORE_B64: ${{ secrets.TAMAPOKE_KEYSTORE_B64 }}
+        if: ${{ env.TAMAPOKE_KEYSTORE_B64 != '' }}
         run: |
           echo "$TAMAPOKE_KEYSTORE_B64" | base64 --decode > android/app/tamapoke-release.jks
           echo "TAMAPOKE_KEYSTORE_PATH=tamapoke-release.jks" >> "$GITHUB_ENV"
