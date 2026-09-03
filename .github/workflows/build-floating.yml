@@ -56,10 +56,13 @@ jobs:
       - name: Build mobile ARM64 APK
         run: flutter build apk --flavor mobile --debug --split-per-abi
 
+      - name: Show generated APKs
+        run: find build/app/outputs/flutter-apk -maxdepth 1 -type f -name '*.apk' -print
+
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
           name: TamaPoke-Floating-Mobile-ARM64
-          path: build/app/outputs/flutter-apk/app-mobile-arm64-v8a-debug.apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-mobile-debug.apk
           if-no-files-found: error
           retention-days: 30
