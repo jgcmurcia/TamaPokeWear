@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../services/floating_pet_service.dart';
 import '../services/game_engine.dart';
 import 'home_screen.dart';
 
@@ -13,6 +15,68 @@ class MobileWrapper extends StatefulWidget {
 
 class _MobileWrapperState extends State<MobileWrapper> {
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
+  bool _floatingPetEnabled = false;
+  bool _floatingPetBusy = false;
+
+  Future<void> _toggleFloatingPet() async {
+    if (_floatingPetBusy) return;
+    setState(() => _floatingPetBusy = true);
+
+    try {
+      if (_floatingPetEnabled) {
+        await FloatingPetService.stop();
+        if (mounted) {
+          setState(() => _floatingPetEnabled = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pokémon guardado.')),
+          );
+        }
+        return;
+      }
+
+      final pet = widget.engine.pet;
+      if (pet.isEgg || pet.speciesId <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Primero tiene que nacer tu Pokémon.')),
+          );
+        }
+        return;
+      }
+
+      final allowed = await FloatingPetService.canDrawOverlays();
+      if (!allowed) {
+        await FloatingPetService.requestOverlayPermission();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Activa “Mostrar sobre otras aplicaciones”, vuelve a TamaPoke y pulsa de nuevo.',
+              ),
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+        return;
+      }
+
+      final started = await FloatingPetService.start(pet);
+      if (mounted) {
+        setState(() => _floatingPetEnabled = started);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              started
+                  ? '¡Pokémon suelto! Arrástralo, tócalo o haz doble toque para volver al juego.'
+                  : 'No se pudo iniciar la mascota flotante.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _floatingPetBusy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +199,41 @@ class _MobileWrapperState extends State<MobileWrapper> {
                 ),
                 const SizedBox(height: 10),
               ],
+            ),
+          ),
+
+          // Mobile-only control for the Android overlay pet.
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: FloatingActionButton.small(
+                  heroTag: 'floatingPetToggle',
+                  tooltip: _floatingPetEnabled
+                      ? 'Guardar Pokémon flotante'
+                      : 'Soltar Pokémon por la pantalla',
+                  onPressed: _floatingPetBusy ? null : _toggleFloatingPet,
+                  backgroundColor: _floatingPetEnabled
+                      ? Colors.red.shade700
+                      : Colors.black.withValues(alpha: 0.72),
+                  foregroundColor: Colors.white,
+                  child: _floatingPetBusy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          _floatingPetEnabled
+                              ? Icons.home_rounded
+                              : Icons.pets_rounded,
+                        ),
+                ),
+              ),
             ),
           ),
         ],
