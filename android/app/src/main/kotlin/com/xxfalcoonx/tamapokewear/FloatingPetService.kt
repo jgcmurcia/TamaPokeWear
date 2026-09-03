@@ -248,6 +248,7 @@ class FloatingPetService : Service() {
 
     private fun buildNotification(): android.app.Notification {
         val openIntent = packageManager.getLaunchIntentForPackage(packageName)
+            ?: Intent(this, MainActivity::class.java)
         val openPending = PendingIntent.getActivity(
             this,
             100,
