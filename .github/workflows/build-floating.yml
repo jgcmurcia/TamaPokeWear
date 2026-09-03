@@ -1,0 +1,65 @@
+name: Build Floating Pet APK
+
+on:
+  push:
+    branches:
+      - feature/floating-pet
+  workflow_dispatch:
+
+jobs:
+  build-mobile-arm64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Python image dependency
+        run: pip install Pillow
+
+      - name: Generate sprites and audio assets
+        run: |
+          python tools/download_sprites.py
+          python tools/generate_sounds.py
+          python tools/download_bgm.py
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Create local Android signing key
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/tamapoke.jks \
+            -storepass tamapoke123 \
+            -alias tamapoke \
+            -keypass tamapoke123 \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=TamaPoke Personal Build,OU=Personal,O=jgcmurcia,L=Murcia,ST=Murcia,C=ES"
+
+      - name: Analyze Dart
+        run: flutter analyze
+
+      - name: Build mobile ARM64 APK
+        run: flutter build apk --flavor mobile --debug --split-per-abi
+
+      - name: Upload ARM64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TamaPoke-Floating-Mobile-ARM64
+          path: build/app/outputs/flutter-apk/app-mobile-arm64-v8a-debug.apk
+          if-no-files-found: error
+          retention-days: 30
