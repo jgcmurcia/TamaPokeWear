@@ -1,9 +1,17 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val releaseKeystorePath = System.getenv("TAMAPOKE_KEYSTORE_PATH")
+val releaseStorePassword = System.getenv("TAMAPOKE_STORE_PASSWORD")
+val releaseKeyAlias = System.getenv("TAMAPOKE_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("TAMAPOKE_KEY_PASSWORD")
+val hasReleaseSigning = !releaseKeystorePath.isNullOrBlank() &&
+    !releaseStorePassword.isNullOrBlank() &&
+    !releaseKeyAlias.isNullOrBlank() &&
+    !releaseKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.xxfalcoonx.tamapokewear"
@@ -21,10 +29,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.xxfalcoonx.tamapokewear"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Separate identity for this personal fork so it no longer collides with
+        // the original TamaPokeWear package.
+        applicationId = "com.jgcmurcia.tamapokepocket"
         minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,17 +39,13 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("tamapoke.jks")
-            storePassword = "tamapoke123"
-            keyAlias = "tamapoke"
-            keyPassword = "tamapoke123"
-        }
-        getByName("debug") {
-            storeFile = file("tamapoke.jks")
-            storePassword = "tamapoke123"
-            keyAlias = "tamapoke"
-            keyPassword = "tamapoke123"
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
@@ -57,11 +60,17 @@ android {
     }
 
     buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("release")
-        }
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            // CI can build immediately with Android's debug signing fallback.
+            // Once the four TAMAPOKE_* secrets are configured, the exact same
+            // workflow produces update-safe, persistently signed releases.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -1,0 +1,73 @@
+name: Build TamaPoke Pocket APK
+
+on:
+  push:
+    branches:
+      - feature/floating-pet
+  workflow_dispatch:
+
+jobs:
+  build-mobile-arm64:
+    runs-on: ubuntu-latest
+    env:
+      TAMAPOKE_KEYSTORE_B64: ${{ secrets.TAMAPOKE_KEYSTORE_B64 }}
+      TAMAPOKE_STORE_PASSWORD: ${{ secrets.TAMAPOKE_STORE_PASSWORD }}
+      TAMAPOKE_KEY_ALIAS: ${{ secrets.TAMAPOKE_KEY_ALIAS }}
+      TAMAPOKE_KEY_PASSWORD: ${{ secrets.TAMAPOKE_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Python image dependency
+        run: pip install Pillow
+
+      - name: Generate sprites and audio assets
+        run: |
+          python tools/download_sprites.py
+          python tools/generate_sounds.py
+          python tools/download_bgm.py
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Restore persistent signing key when configured
+        if: ${{ env.TAMAPOKE_KEYSTORE_B64 != '' }}
+        run: |
+          echo "$TAMAPOKE_KEYSTORE_B64" | base64 --decode > android/app/tamapoke-release.jks
+          echo "TAMAPOKE_KEYSTORE_PATH=tamapoke-release.jks" >> "$GITHUB_ENV"
+
+      - name: Analyze Dart
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Build mobile release APKs
+        run: flutter build apk --flavor mobile --release --split-per-abi
+
+      - name: Select ARM64 APK
+        run: |
+          echo "=== Generated APK files ==="
+          find build/app/outputs/flutter-apk -maxdepth 1 -type f -name '*.apk' -print
+          ARM64_APK="$(find build/app/outputs/flutter-apk -maxdepth 1 -type f -name '*arm64-v8a*mobile*release*.apk' | head -n 1)"
+          test -n "$ARM64_APK"
+          cp "$ARM64_APK" build/app/outputs/flutter-apk/TamaPoke-Pocket-arm64-release.apk
+          ls -lh build/app/outputs/flutter-apk/TamaPoke-Pocket-arm64-release.apk
+
+      - name: Upload ARM64 release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TamaPoke-Pocket-Mobile-ARM64-Release
+          path: build/app/outputs/flutter-apk/TamaPoke-Pocket-arm64-release.apk
+          if-no-files-found: error
+          retention-days: 30

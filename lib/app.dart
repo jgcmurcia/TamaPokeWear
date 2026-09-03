@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:wear_plus/wear_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:wear_plus/wear_plus.dart';
 
 import 'screens/home_screen.dart';
-import 'services/game_engine.dart';
 import 'screens/mobile_wrapper.dart';
+import 'services/game_engine.dart';
 import 'theme/wear_theme.dart';
 
 class TamaPokeApp extends StatefulWidget {
@@ -34,7 +34,7 @@ class _TamaPokeAppState extends State<TamaPokeApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint("[TamaPokeApp] AppLifecycleState changed to: $state");
+    debugPrint('[TamaPokeApp] AppLifecycleState changed to: $state');
     if (state == AppLifecycleState.paused) {
       widget.engine.pauseGame();
       widget.engine.scheduleFutureNotifications();
@@ -46,7 +46,7 @@ class _TamaPokeAppState extends State<TamaPokeApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     Widget homeWidget;
-    
+
     if (widget.flavor == 'mobile') {
       homeWidget = MobileWrapper(engine: widget.engine);
     } else {
@@ -62,7 +62,7 @@ class _TamaPokeAppState extends State<TamaPokeApp> with WidgetsBindingObserver {
     }
 
     return MaterialApp(
-      title: 'TamaPokeWear',
+      title: widget.flavor == 'mobile' ? 'TamaPoke Pocket' : 'TamaPokeWear',
       theme: WearTheme.dark,
       home: homeWidget,
       debugShowCheckedModeBanner: false,
