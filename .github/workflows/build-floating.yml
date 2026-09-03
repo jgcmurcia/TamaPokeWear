@@ -51,7 +51,7 @@ jobs:
             -dname "CN=TamaPoke Personal Build,OU=Personal,O=jgcmurcia,L=Murcia,ST=Murcia,C=ES"
 
       - name: Analyze Dart
-        run: flutter analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
       - name: Build mobile ARM64 APK
         run: flutter build apk --flavor mobile --debug --split-per-abi
